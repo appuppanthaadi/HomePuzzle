@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>The HOUSE PUZZLE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     /* Scale entire interface up by 25% */
     body {
@@ -12,6 +13,7 @@
       margin: 20px;
       user-select: none;
       background: #e0f7fa;
+      overflow-x: hidden;
     }
     h2 {
       text-align: center;
@@ -402,32 +404,52 @@
           });
         }
         piece.addEventListener("mousedown", startDrag);
+        piece.addEventListener("touchstart", startDrag, { passive: false });
       });
       
       let selectedPiece = null, offset = { x: 0, y: 0 };
+      
+      // Helper: get coordinates from mouse or touch event.
+      function getEventCoordinates(e) {
+        if (e.touches && e.touches.length > 0) {
+          return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+      }
+      
       function startDrag(e) {
         if (e.target.closest(".rotate-icon") || e.target.closest(".flip-icon")) return;
+        e.preventDefault();
         selectedPiece = e.currentTarget;
         selectedPiece.parentNode.appendChild(selectedPiece);
-        const startX = e.clientX, startY = e.clientY;
+        const coords = getEventCoordinates(e);
+        const startX = coords.x, startY = coords.y;
         const tx = parseFloat(selectedPiece.getAttribute("data-tx")) || 0;
         const ty = parseFloat(selectedPiece.getAttribute("data-ty")) || 0;
         offset.x = startX - tx;
         offset.y = startY - ty;
         window.addEventListener("mousemove", drag);
         window.addEventListener("mouseup", endDrag);
+        window.addEventListener("touchmove", drag, { passive: false });
+        window.addEventListener("touchend", endDrag);
       }
+      
       function drag(e) {
+        e.preventDefault();
         if (!selectedPiece) return;
-        const newX = e.clientX - offset.x;
-        const newY = e.clientY - offset.y;
+        const coords = getEventCoordinates(e);
+        const newX = coords.x - offset.x;
+        const newY = coords.y - offset.y;
         selectedPiece.setAttribute("data-tx", newX);
         selectedPiece.setAttribute("data-ty", newY);
         updateTransform(selectedPiece);
       }
+      
       function endDrag(e) {
         window.removeEventListener("mousemove", drag);
         window.removeEventListener("mouseup", endDrag);
+        window.removeEventListener("touchmove", drag);
+        window.removeEventListener("touchend", endDrag);
         selectedPiece = null;
       }
       
